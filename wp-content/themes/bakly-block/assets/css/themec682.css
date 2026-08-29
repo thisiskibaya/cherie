@@ -1085,6 +1085,13 @@ a.bakly-brand-text:hover { color:var(--bakly-pink); }
   .bakly-about-story__badge { right:-1.6rem; }
   .bakly-footer-brand { order:-1; margin-bottom:1.5rem; }
   .bakly-footer-nse{ margin-top:1rem; }
+.bakly-footer {
+  padding: 3rem clamp(1.25rem, 5vw, 4rem);
+}
+.bakly-footer.is-layout-constrained > * {
+  max-width: 1200px;
+  margin-inline: auto;
+}
   .wp-block-woocommerce-product-collection .wc-block-product-template { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .bakly-newsletter-row { flex-direction:column; }
   .bakly-newsletter-form { margin-inline-start:0; }
