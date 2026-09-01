@@ -1,10 +1,9 @@
 # AGENTS.md — Post-processing HTTrack scrapes of WordPress sites
 
 This directory is an **HTTrack Website Copier** mirror of a WordPress + WooCommerce
-site ("Sherrie Bakery", Nairobi). The live staging target for this instance is
-`https://sherrie.page.gd`. The notes below are generic enough to reuse for any
-similar scrape, with `bakery.local` = the crawl host and `<STAGING>` = the real
-destination domain.
+site ("Luqman Petroleum", Nairobi). The deploy target is `https://sherrie.page.gd`.
+The notes below are generic enough to reuse for any similar scrape, with
+`bakery.local` = the crawl host.
 
 ## Layout of an HTTrack scrape
 
@@ -26,109 +25,87 @@ Do **not** upload the wrapper files. The real entry page becomes `bakery.local/i
 
 ## Post-processing checklist
 
-### 1. Rewrite the crawl host to the staging domain
-Two passes, in this order (run from inside `bakery.local/`):
+### 1. Rewrite the crawl host to root-relative URLs
+Go straight to root-relative (`/path`). No staging-URL intermediate step.
+Run from inside `bakery.local/`:
 
 ```bash
-find bakery.local -type f -exec sed -i \
-  -e 's#http://bakery.local#https://<STAGING>#g' \
-  -e 's#bakery.local#<STAGING>#g' \
-  {} +
+find . -type f -not -path './.git/*' -not -name '*.json' -print0 | xargs -0 perl -pi -e 's|http://bakery\.local|/|g'
+find ./wp-json -name '*.json' -not -path './.git/*' -print0 | xargs -0 perl -pi -e 's|http://bakery\.local|/|g'
 ```
 
-- Pass 1 fixes the ~15k absolute `http://bakery.local/...` URLs (assets, canonical,
-  importmaps, `wp-json`).
-- Pass 2 fixes bare `bakery.local` (HTTrack `<!-- Mirrored from -->` comments and
-  URL-encoded `http%3A%2F%2Fbakery.local` inside saved oEmbed JSON). There are no
-  navigable bare `href="bakery.local..."` links inside `bakery.local/`.
+- Fixes ~15k absolute `http://bakery.local/...` URLs (assets, canonical, importmaps, `wp-json`).
+- No bare `bakery.local` hrefs remain inside `bakery.local/`.
 
-> The root wrapper `index.html` (outside `bakery.local/`) is discarded, so its bare
-> `bakery.local` links don't matter.
+### 2. Strip HTTrack mirror comments
+Remove `<!-- Mirrored from bakery.local/... -->` lines and `<!-- Created by HTTrack -->` lines.
+Keep the `<meta charset>` wrapper from `<!-- Added by HTTrack --><meta ...><!-- /Added by HTTrack -->`.
 
-### 2. Fix mixed content (CRITICAL, easy to miss)
-The original WordPress `home` URL is often the **real** `http://<STAGING>` (not the
-crawl host). HTTrack keeps that domain and WordPress emits it **backslash-escaped**
-inside inline JS config objects (`wpcf7`, `wpApiSettings` REST root):
-
-```
-http:\/\/<STAGING>\/wp-json\/contact-form-7\/v1\/...
-```
-
-A plain `grep 'http://'` **misses these** because the slashes are escaped. They cause
-`Mixed Content` console errors when the page is served over HTTPS. Replace the escaped
-form (and defensively the plain form) across all served files:
+### 3. Fix mixed content
+Replace escaped `http:\/\/bakery.local` in `wp-json` JSON files:
 
 ```bash
-find bakery.local -type f -exec sed -i \
-  -e 's#http:\\/\\/<STAGING>#https:\\/\\/<STAGING>#g' \
-  -e 's#http:\\/\\/bakery.local#https:\\/\\/<STAGING>#g' \
-  -e 's#http://<STAGING>#https://<STAGING>#g' \
-  -e 's#http://bakery.local#https://<STAGING>#g' \
-  {} +
+find ./wp-json -name '*.json' -not -path './.git/*' -print0 | xargs -0 perl -pi -e 's|http://bakery\.local|/|g'
 ```
 
-### 3. Strip `srcset`/`sizes` (fixes image 404s)
-HTTrack usually downloads the main image but not every WP-generated thumbnail size
-(`-100x100.jpg`, `-768x1156.jpg`, …). Those only appear in `srcset`/`sizes`, so they
-404 on the live side. The main `src` images exist, so strip the responsive attributes:
+### 4. Strip `srcset`/`sizes` (fixes image 404s)
+HTTrack downloads the main image but not every WP-generated thumbnail size.
+Strip responsive attributes from HTML:
 
 ```bash
-find bakery.local -name '*.html' -exec sed -i -E \
-  -e 's/srcset="[^"]*"//g' -e "s/srcset='[^']*'//g" \
-  -e 's/sizes="[^"]*"//g'  -e "s/sizes='[^']*'//g" \
-  {} +
+find . -type f -name '*.html' -not -path './.git/*' -print0 | xargs -0 perl -pi -e 's/\s+srcset="[^"]*"//g; s/\s+sizes="[^"]*"//g'
 ```
 
-Note: `srcset=\"…\"` leftovers inside JSON/`data-*` attributes and CSS `sizes=auto`
-selectors are harmless — the browser never fetches them as responsive images.
+Note: `state.itemSrcset`/`state.itemSizes` in inline JS are not HTML attributes — leave them.
 
-### 4. Silence backend/module 404 noise
-WooCommerce ships ES-module scripts referenced by an import map + `modulepreload`
-links. On a static site these 404 (and free hosts like InfinityFree inject a custom
-404 page that cascades). They are non-functional without PHP anyway, so remove them:
+### 5. Silence backend/module 404 noise
+WooCommerce ships ES-module scripts referenced by an import map + `modulepreload` links.
+On a static site these 404. Remove them:
 
 ```bash
-find bakery.local -name '*.html' -exec perl -0pi -e \
+find . -type f -name '*.html' -not -path './.git/*' -print0 | xargs -0 perl -0777 -pi -e \
   's/<script id="wp-importmap" type="importmap">.*?<\/script>//gs;
-   s/<script[^>]*type="module"[^>]*>.*?<\/script>//gs;
+   s/<script id="woocommerce\/[^"]*-js-module"[^>]*type="module"><\/script>//g;
    s/<link rel="modulepreload"[^>]*>//g' {} +
 ```
 
-Expected remaining 404s (inherent, ignore): `wp-admin/admin-ajax.php` and
-`wp-comments-post.php` (no PHP backend). The regular WooCommerce scripts
-(`woocommerce.min.js`, `add-to-cart.min.js`) resolve fine and can stay.
+### 6. Replace contact details
+Update all instances of old Sherrie Bakery contact info to the new Luqman Petroleum details:
+- Phone: `+254 20-2222736 / +254737531346`
+- Email: `info@luqmanpetroleum.com`
+- Address: `Luqman Mall 3rd Flr, Othaya Road`
+- `tel:+12135553890` → `tel:+254202222736`
+
+### 7. Footer
+Theme `bakly-block` v2 has native `.bakly-footer { padding-inline: var(--bakly-gutter) }`
+with gradient background — footer stretches from end to end automatically.
+No custom CSS padding needed.
 
 ## Verification
 
 ```bash
-# No insecure references to the crawl host or staging domain (any form):
-grep -rIoh 'http://(bakery\.local|<STAGING>)[^"'"'"' )>\\]*' bakery.local/ | wc -l   # -> 0
+# No insecure references to the crawl host:
+grep -rIoh 'http://bakery\.local' bakery.local/ | wc -l   # -> 0
 
-# No loadable srcset left (JSON-escaped leftovers are OK):
-grep -rI 'srcset="' bakery.local/ | wc -l                                                     # -> 0
+# No loadable srcset left (JS state.itemSrcset leftovers are OK):
+grep -rI 'srcset="' bakery.local/ | wc -l                                                  # -> 0
 
 # Module machinery removed:
 grep -rI 'id="wp-importmap"' bakery.local/ | wc -l                                            # -> 0
 grep -rI 'type="module"'    bakery.local/ | wc -l                                             # -> 0
-```
 
-> False positive: `index36b6.js` (Contact Form 7) contains `a="http://"+a` — that is
-> string code that prepends `http://` to a *user-typed* URL field, never fetched. Not
-> mixed content.
+# Contact details updated:
+grep -rI 'info@luqmanpetroleum' bakery.local/ | wc -l                                        # -> > 0
+grep -rI 'info@sherrie' bakery.local/ | wc -l                                               # -> 0
+```
 
 ## Known limitations of a static export
 - **Cart / Checkout / My Account / mini-cart**: non-functional (need WooCommerce + PHP).
-- **Contact Form 7**: the form renders but submission fails — it POSTs to the
-  `/wp-json` REST API, which doesn't exist statically. Shows a `fetch_error` in console.
-  To remove that noise, strip the form's JS wiring or replace it with a `mailto:`/static
-  message.
-- **Missing assets**: if other 404s appear, they are files HTTrack failed to download
-  (regenerate the sizes, or re-run the crawl). Re-scrape rather than hand-fix.
-- **Host scheme**: if the staging host is HTTP-only, do NOT hardcode `https://`; use
-  protocol-relative `//<STAGING>/...` instead so assets inherit the page scheme.
+- **Contact Form 7**: the form renders but submission fails — it POSTs to the `/wp-json` REST API.
+- **Missing assets**: if other 404s appear, re-scrape rather than hand-fix.
 
 ## Quick reference — this instance
 - Crawl host: `bakery.local`
-- Staging: `https://sherrie.page.gd` (HTTPS; free InfinityFree hosting injects
-  `errors.infinityfree.net/errors/404` for every missing file)
+- Staging: `https://sherrie.page.gd` (HTTPS; free InfinityFree hosting)
 - Theme: custom `bakly-block` (Swiper hero carousel, CF7 newsletter, WooCommerce 11)
+- Contact: `info@luqmanpetroleum.com` / `+254 20-2222736 / +254737531346` / `Luqman Mall 3rd Flr, Othaya Road`
