@@ -53,6 +53,10 @@
     {
       "source": "/products.json",
       "destination": "/products.json"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
