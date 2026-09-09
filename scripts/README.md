@@ -30,9 +30,19 @@ vercel --prod
 ## File Structure
 - `scripts/build.sh` — Full build pipeline from HTTrack scrape
 - `scripts/transform.py` — URL transformation step
+- `scripts/repair.py` — Restores referenced assets from the mirror and fixes
+  static-site conversion issues (interactivity import map, inline wp-emoji
+  module removal, un-hashed asset URLs, links to removed pages, dead image
+  src/srcset/`url(...)` references). Called automatically by `build.sh` and
+  safe to run again on an existing deploy.
+- `scripts/verify.py` — Sanity check: fails if any HTML page references a
+  file that isn't in the deploy tree or still has known conversion leftovers.
 - `products.json` — Static product data for search overlay
-- `vercel.json` — Vercel configuration (CORS headers, caching)
-- `package.json` — Node.js project config
+- `vercel.json` — Vercel configuration (CORS headers, immutable caching).
+  NOTE: there is deliberately **no catch-all rewrite** — a missing file must
+  404 instead of returning `index.html` (which previously made every missing
+  JS/CSS/image "load" as HTML and triggered the `Unexpected token '<'` /
+  MIME-type errors).
 
 ## Interactive Features Preserved
 - Mobile menu (`@wordpress/interactivity` module)

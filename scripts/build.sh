@@ -143,6 +143,10 @@ with open('index.html', 'w') as f:
 print('index.html head fixed')
 "
 
+# Repair: restore referenced assets from the mirror + fix static-site issues
+# (import map, emoji module, un-hashed URLs, dead page links, dead image refs)
+python3 scripts/repair.py "$SRC"
+
 # Create deployment configs
 cat > vercel.json << 'VERCELJSON'
 {
@@ -150,14 +154,16 @@ cat > vercel.json << 'VERCELJSON'
     { "source": "/(.*)", "headers": [
       { "key": "Access-Control-Allow-Origin", "value": "*" },
       { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-      { "key": "Access-Control-Allow-Headers", "value": "Content-Type" },
-      { "key": "Cache-Control", "value": "public, max-age=3600" }
+      { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
     ]},
-    { "source": "/wp-includes/js/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]},
+    { "source": "/wp-includes/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]},
     { "source": "/wp-content/uploads/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]},
+    { "source": "/wp-content/plugins/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]},
     { "source": "/wp-content/themes/bakly-block/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]}
   ],
-  "rewrites": [{ "source": "/products.json", "destination": "/products.json" }]
+  "rewrites": [
+    { "source": "/(.*)/", "destination": "/$1/index.html" }
+  ]
 }
 VERCELJSON
 
