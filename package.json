@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Static site for layout review",
   "scripts": {
-    "dev": "echo 'Static site - no build required'",
-    "start": "echo 'Static site - no build required'"
+    "dev": "npx serve -s .",
+    "start": "npx serve -s ."
   },
   "type": "module"
 }
