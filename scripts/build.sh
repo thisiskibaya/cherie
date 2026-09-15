@@ -21,7 +21,7 @@ rm -rf about blog contact customer-favorites-most-loved-gifts-from-our-shop \
   pastry-pairings-what-to-eat-or-drink-with-your-favorite-bake privacy-policy \
   product product-category shop tag team terms-conditions testimonials \
   wp-content wp-includes index.html products.json vercel.json package.json .gitignore \
-  index*.html xmlrpc0db.php
+  index*.html xmlrpc*.php
 
 # Copy fresh scrape
 cp -r "$SRC"/* . 2>/dev/null
@@ -31,8 +31,9 @@ cp "$SRC"/.* . 2>/dev/null || true
 find . -name "index*.html" ! -name "index.html" -type f -delete 2>/dev/null
 rm -rf hts-cache/ hts-log.txt 2>/dev/null
 
-# Remove server-side directories
+# Remove server-side directories (fresh mirrors add nested feed/ dirs per page)
 rm -rf wp-admin/ wp-json/ author/ comments/ feed/ my-account/ cart/ checkout/ 2>/dev/null
+find . -type d -name feed -not -path './.git/*' -exec rm -rf {} + 2>/dev/null
 
 # Remove wp-content/plugins/ (dynamic)
 rm -rf wp-content/plugins/ 2>/dev/null
@@ -127,12 +128,17 @@ if '@wordpress/interactivity-js-modulepreload' not in content:
     importmap_end = content.find('</script>', content.find('wp-importmap'))
     if importmap_end >= 0:
         content = content[:importmap_end+9] + '\n' + preload + content[importmap_end+9:]
-# Remove wp-admin references from search overlay
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'r') as f:
-    js = f.read()
-js = js.replace(\"/wp-json/wc/store/v1/products\", \"/products.json\")
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'w') as f:
-    f.write(js)
+# Fix search overlay (bundle hash changes per scrape — discover it)
+import glob as _glob
+_matches = sorted(_glob.glob('wp-content/themes/bakly-block/assets/js/interactions*.js'))
+if _matches:
+    with open(_matches[0], 'r') as f:
+        js = f.read()
+    js = js.replace(\"/wp-json/wc/store/v1/products\", \"/products.json\")
+    with open(_matches[0], 'w') as f:
+        f.write(js)
+else:
+    print('WARNING: no interactions*.js found, search overlay fix skipped')
 # Fix double-slash URLs
 with open('index.html', 'r') as f:
     content = f.read()

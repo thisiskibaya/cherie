@@ -18,6 +18,12 @@ for filepath in all_files:
     content = re.sub(r'https://bakery\.local', '/', content)
     content = re.sub(r'http%3A%2F%2Fbakery\.local%2F', '/', content)
     content = re.sub(r'http:\/\/bakery\.local\/', '/', content)
+    # JSON-escaped wpcf7.api block: replace broken "//wp-json//wp-json/"
+    # (from a previous botched run) AND the original escaped variant
+    content = re.sub(r'"root":\s*"http:\\/\\/bakery\.local\\\/wp-json\\\/"',
+                     '"root": "\\/wp-json\\/"', content)
+    content = re.sub(r'"root":\s*"\\/\\/wp-json\\/\\/wp-json\\/"',
+                     '"root": "\\/wp-json\\/"', content)
 
     # Fix protocol-relative URLs
     content = re.sub(r'//wp-admin', '/wp-admin', content)
@@ -76,11 +82,17 @@ content = content.replace('//wp-admin', '/wp-admin')
 with open('index.html', 'w') as f:
     f.write(content)
 
-# Fix search overlay in interactionsa024.js
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'r') as f:
-    js = f.read()
-js = js.replace('/wp-json/wc/store/v1/products', '/products.json')
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'w') as f:
-    f.write(js)
+# Fix search overlay in the theme interactions bundle (hash changes per scrape)
+import glob as _glob
+_matches = sorted(_glob.glob('wp-content/themes/bakly-block/assets/js/interactions*.js'))
+if _matches:
+    _ipath = _matches[0]
+    with open(_ipath, 'r') as f:
+        js = f.read()
+    js = js.replace('/wp-json/wc/store/v1/products', '/products.json')
+    with open(_ipath, 'w') as f:
+        f.write(js)
+else:
+    print('WARNING: no interactions*.js found, search overlay fix skipped')
 
 print('Transform complete')
