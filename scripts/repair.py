@@ -65,10 +65,13 @@ def is_external(url):
 
 def skipped_path(path):
     """Refs that point at intentionally-removed or dynamic destinations."""
+    # Normalize: page-relative refs (author/x, cart/index.html, feed/...)
+    # lack the leading slash the checks below look for.
+    p = "/" + path.lstrip("/")
     return any(
-        seg in path
+        seg in p
         for seg in ("/my-account/", "/cart/", "/author/", "/wp-json/", "/wp-admin/")
-    ) or "/feed" in path or re.search(r"/index[0-9a-f]{4}\.html", path)
+    ) or "/feed" in p or re.search(r"/index[0-9a-f]{4}\.html", p)
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +164,10 @@ UNHASHED = {
     "themes/bakly-block/assets/vendor/swiper-bundle.min.js": "swiper-bundle.minb6eb.js",
     "themes/bakly-block/assets/js/interactions.js": "interactionsa024.js",
 }
+# Theme bundle hash changes per scrape — resolve to whatever the mirror shipped.
+_found = sorted(glob.glob(os.path.join(ROOT, "wp-content/themes/bakly-block/assets/js/interactions*.js")))
+if _found:
+    UNHASHED["themes/bakly-block/assets/js/interactions.js"] = os.path.basename(_found[0])
 
 
 def fix_asset_url(value):
@@ -216,9 +223,10 @@ def fix_asset_attributes(text, depth):
 
 
 def remove_pagination_links(text):
-    """Drop anchors pointing at orphaned indexXXXX.html?query-page= artifacts."""
+    """Drop anchors pointing at orphaned indexXXXX.html?query*= artifacts
+    (query-page= and block query-0-page=/query-N-page= variants)."""
     return re.sub(
-        r'<a\b[^>]*href="index[0-9a-f]{4}\.html\?query-page=[^"]*"[^>]*>\s*.*?\s*</a>',
+        r'<a\b[^>]*href="index[0-9a-f]{4}\.html\?query[^"]*"[^>]*>\s*.*?\s*</a>',
         "",
         text,
         flags=re.S,

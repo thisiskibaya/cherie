@@ -28,7 +28,7 @@ SKIP_PAGE_LINKS = (
     re.compile(r"/index[0-9a-f]{4}\.html"),
     re.compile(r"/wp-json/"),
     re.compile(r"/wp-admin/"),
-    re.compile(r"/feed"),
+    re.compile(r"(?:^|/)feed(?:/|$)"),
     # placeholders / fragments that are not real lookups
     re.compile(r"^#"),
     re.compile(r"^javascript:"),

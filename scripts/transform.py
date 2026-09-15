@@ -76,11 +76,17 @@ content = content.replace('//wp-admin', '/wp-admin')
 with open('index.html', 'w') as f:
     f.write(content)
 
-# Fix search overlay in interactionsa024.js
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'r') as f:
-    js = f.read()
-js = js.replace('/wp-json/wc/store/v1/products', '/products.json')
-with open('wp-content/themes/bakly-block/assets/js/interactionsa024.js', 'w') as f:
-    f.write(js)
+# Fix search overlay in the theme interactions bundle (hash changes per scrape)
+import glob as _glob
+_matches = sorted(_glob.glob('wp-content/themes/bakly-block/assets/js/interactions*.js'))
+if _matches:
+    _ipath = _matches[0]
+    with open(_ipath, 'r') as f:
+        js = f.read()
+    js = js.replace('/wp-json/wc/store/v1/products', '/products.json')
+    with open(_ipath, 'w') as f:
+        f.write(js)
+else:
+    print('WARNING: no interactions*.js found, search overlay fix skipped')
 
 print('Transform complete')

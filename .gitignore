@@ -1,5 +1,4 @@
 node_modules/
-__pycache__/
 .htaccess
 wp-config.php
 hts-cache/
