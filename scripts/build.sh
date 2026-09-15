@@ -148,6 +148,10 @@ print('index.html head fixed')
 python3 scripts/repair.py "$SRC"
 
 # Create deployment configs
+# NOTE: must match the deployed config — no "framework" key (invalid value
+# fails schema validation), no start/dev scripts (a dummy "echo" start script
+# breaks Vercel's static serving with 403s), and NO catch-all rewrite (a
+# missing file must 404 instead of returning index.html as HTML/JS).
 cat > vercel.json << 'VERCELJSON'
 {
   "headers": [
@@ -168,7 +172,7 @@ cat > vercel.json << 'VERCELJSON'
 VERCELJSON
 
 cat > package.json << 'PKGJSON'
-{ "name": "cherie", "version": "1.0.0", "description": "Static site for layout review", "scripts": { "dev": "echo 'Static site'", "start": "echo 'Static site'" }, "type": "module" }
+{ "name": "cherie", "version": "1.0.0", "description": "Static site for layout review" }
 PKGJSON
 
 cat > .gitignore << 'GITIGNORE'
