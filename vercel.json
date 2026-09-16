@@ -12,6 +12,7 @@
     { "source": "/wp-content/themes/bakly-block/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]}
   ],
   "rewrites": [
-    { "source": "/(.*)/", "destination": "/$1/index.html" }
+    { "source": "/(.*)/", "destination": "/$1/index.html" },
+    { "source": "/wp-json/contact-form-7/:path*", "destination": "/index.html" }
   ]
 }

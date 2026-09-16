@@ -23,17 +23,19 @@ rm -rf about blog contact customer-favorites-most-loved-gifts-from-our-shop \
   wp-content wp-includes index.html products.json vercel.json package.json .gitignore \
   index*.html xmlrpc*.php
 
+# Remove server-side directories (fresh mirrors add nested feed/ dirs per page)
+rm -rf wp-admin/ wp-json/ author/ comments/ feed/ my-account/ cart/ checkout/ 2>/dev/null
+find . -type d -name feed -not -path './.git/*' -exec rm -rf {} + 2>/dev/null
+
 # Copy fresh scrape
 cp -r "$SRC"/* . 2>/dev/null
 cp "$SRC"/.* . 2>/dev/null || true
+# Explicitly restore wp-includes/blocks/ (cp may miss deeply nested dirs)
+cp -r "$SRC"/wp-includes/blocks/ wp-includes/blocks/ 2>/dev/null
 
 # Remove HTTrack artifacts
 find . -name "index*.html" ! -name "index.html" -type f -delete 2>/dev/null
 rm -rf hts-cache/ hts-log.txt 2>/dev/null
-
-# Remove server-side directories (fresh mirrors add nested feed/ dirs per page)
-rm -rf wp-admin/ wp-json/ author/ comments/ feed/ my-account/ cart/ checkout/ 2>/dev/null
-find . -type d -name feed -not -path './.git/*' -exec rm -rf {} + 2>/dev/null
 
 # Remove wp-content/plugins/ (dynamic)
 rm -rf wp-content/plugins/ 2>/dev/null
@@ -59,6 +61,26 @@ cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/scrip
 # Restore product JSON files for products.json generation
 mkdir -p wp-json/wp/v2/product/
 cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-json/wp/v2/product/"*.json wp-json/wp/v2/product/ 2>/dev/null
+
+# Create CF7 feedback schema files so form JS doesn't 403
+python3 -c "
+import os, re, json, glob
+form_ids = set()
+for page in glob.glob('**/index.html', recursive=True):
+    try:
+        with open(page) as f: html = f.read()
+        for m in re.finditer(r'data-wpcf7-id=\"(\d+)\"', html):
+            form_ids.add(m.group(1))
+        for m in re.finditer(r'contact-forms/(\d+)/feedback', html):
+            form_ids.add(m.group(1))
+    except: continue
+for fid in sorted(form_ids, key=int):
+    schema = {'contactFormId': int(fid), 'fields': []}
+    os.makedirs(f'wp-json/contact-form-7/v1/contact-forms/{fid}/feedback', exist_ok=True)
+    with open(f'wp-json/contact-form-7/v1/contact-forms/{fid}/feedback/schema', 'w') as f:
+        json.dump(schema, f)
+print(f'Created CF7 schema for {len(form_ids)} forms')
+" 2>/dev/null
 
 # Generate products.json
 python3 -c "
@@ -125,8 +147,8 @@ python3 scripts/repair.py "$SRC"
 # Create deployment configs
 # NOTE: must match the deployed config — no "framework" key (invalid value
 # fails schema validation), "build": "true" in package.json triggers
-# @vercel/static builder, and NO catch-all rewrite (a missing file
-# must 404 instead of returning index.html as HTML/JS).
+# @vercel/static builder, catch-all rewrite for /wp-json/contact-form-7/
+# prevents 403 on static site without WordPress backend.
 cat > vercel.json << 'VERCELJSON'
 {
   "outputDirectory": ".",
@@ -142,7 +164,8 @@ cat > vercel.json << 'VERCELJSON'
     { "source": "/wp-content/themes/bakly-block/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]}
   ],
   "rewrites": [
-    { "source": "/(.*)/", "destination": "/$1/index.html" }
+    { "source": "/(.*)/", "destination": "/$1/index.html" },
+    { "source": "/wp-json/contact-form-7/:path*", "destination": "/index.html" }
   ]
 }
 VERCELJSON

@@ -1,0 +1,8 @@
+node_modules/
+.htaccess
+wp-config.php
+hts-cache/
+hts-log.txt
+*.log
+.DS_Store
+Thumbs.db
