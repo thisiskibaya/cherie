@@ -71,7 +71,7 @@ def skipped_path(path):
     return any(
         seg in p
         for seg in ("/my-account/", "/cart/", "/author/", "/wp-json/", "/wp-admin/")
-    ) or "/feed" in p or re.search(r"/index[0-9a-f]{4}\.html", p)
+    ) or re.search(r"(?:^|/)feed(?:/|$)", p) or re.search(r"/index[0-9a-f]{4}\.html", p)
 
 
 # ---------------------------------------------------------------------------
@@ -461,8 +461,23 @@ def main():
     #    unreferenced files like zxcvbn-async are not resurrected)
     n = restore_tree(os.path.join("wp-content", "plugins"))
     log("  restored %d plugin files from mirror" % n)
-    n = restore_tree(os.path.join("wp-content", "uploads", "2026", "09"))
-    log("  restored %d uploads/2026/09 files from mirror" % n)
+    # Find the latest uploads/YYYY/MM/ directory dynamically
+    uploads_dir = os.path.join(ROOT, "wp-content", "uploads")
+    _uploads_found = 0
+    if os.path.isdir(uploads_dir):
+        _years = sorted([d for d in os.listdir(uploads_dir)
+                         if os.path.isdir(os.path.join(uploads_dir, d)) and re.match(r'^\d{4}$', d)], reverse=True)
+        if _years:
+            _year = _years[0]
+            _months = sorted([d for d in os.listdir(os.path.join(uploads_dir, _year))
+                              if os.path.isdir(os.path.join(uploads_dir, _year, d)) and re.match(r'^\d{2}$', d)], reverse=True)
+            if _months:
+                _target = os.path.join("wp-content", "uploads", _year, _months[0])
+                n = restore_tree(_target)
+                log("  restored %d uploads/%s/%s files from mirror" % (n, _year, _months[0]))
+                _uploads_found = 1
+    if not _uploads_found:
+        log("  no uploads/YYYY/MM directory found, skipped")
     restored, scanned = restore_references()
     log("  reference sweep: scanned %d refs, restored %d files" % (scanned, restored))
 

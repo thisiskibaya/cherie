@@ -41,14 +41,17 @@ rm -rf wp-content/plugins/ 2>/dev/null
 # Clean wp-includes
 rm -rf wp-includes/js/jquery/ 2>/dev/null
 rm -f wp-includes/js/comment-reply.min42a0.js wp-includes/js/zxcvbn-async.min5152.js 2>/dev/null
-rm -rf wp-includes/js/dist/vendor/ 2>/dev/null
-find wp-includes/js/dist/ -type f ! -path "*/script-modules/*" -delete 2>/dev/null
+# Remove vendor/ contents but keep the directory; restore api-fetch separately
+find wp-includes/js/dist/vendor/ -type f -delete 2>/dev/null
+find wp-includes/js/dist/ -type f ! -path "*/script-modules/*" ! -path "*/vendor/*" -delete 2>/dev/null
 rm -rf wp-includes/js/dist/script-modules/* 2>/dev/null
 
 # Restore essential WP JS files
+cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/api-fetch.min9cd3.js" wp-includes/js/dist/ 2>/dev/null
 cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/hooks.min394d.js" wp-includes/js/dist/ 2>/dev/null
 cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/i18n.mineca5.js" wp-includes/js/dist/ 2>/dev/null
 cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/url.min3303.js" wp-includes/js/dist/ 2>/dev/null
+cp -r "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/vendor/" wp-includes/js/dist/vendor/ 2>/dev/null
 mkdir -p wp-includes/js/dist/script-modules/interactivity/
 cp -r "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/script-modules/interactivity/" wp-includes/js/dist/script-modules/interactivity/ 2>/dev/null
 cp "/mnt/c/My Web Sites/Sherrie Bakery v3/bakery.local/wp-includes/js/dist/script-modules/interactivity/index.min132d.js" wp-includes/js/dist/script-modules/interactivity/index.min132d.js 2>/dev/null
@@ -76,49 +79,15 @@ with open('products.json', 'w') as f:
 print(f'Generated products.json with {len(products)} products')
 " 2>/dev/null
 
-# Run URL transformation
-python3 scripts/transform.py 2>/dev/null || python3 -c "
-import re, glob
-# Fix all URLs in all files
-all_files = glob.glob('**/*.html', recursive=True) + glob.glob('**/*.js', recursive=True) + glob.glob('**/*.css', recursive=True)
-all_files += glob.glob('**/*.json', recursive=True) + glob.glob('**/*.xml', recursive=True)
-all_files = [f for f in all_files if not f.startswith('./.git')]
-for filepath in all_files:
-    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-        content = f.read()
-    original = content
-    content = re.sub(r'http://bakery.local', '/', content)
-    content = re.sub(r'https://bakery.local', '/', content)
-    content = re.sub(r'//wp-admin', '/wp-admin', content)
-    content = re.sub(r'//wp-content', '/wp-content', content)
-    content = re.sub(r'//wp-includes', '/wp-includes', content)
-    content = re.sub(r'//wp-json', '/wp-json', content)
-    content = re.sub(r'//wp-comments-post', '/#', content)
-    content = re.sub(r'http%3A%2F%2Fbakery\.local%2F', '/', content)
-    content = re.sub(r'http:\/\/bakery\.local\/', '/', content)
-    # Remove HTTrack comments
-    content = re.sub(r'<!--.*?-->', '', content)
-    # Remove oEmbed link tags
-    content = re.sub(r'<link rel=\"alternate\" title=\"oEmbed[^>]*>\n?', '', content)
-    content = re.sub(r'<link rel=\"alternate\" title=\"JSON\"[^>]*>\n?', '', content)
-    content = re.sub(r'<link[^>]*href=\"[^\"]*wp-json[^\"]*\"[^>]*>\n?', '', content)
-    # Remove plugin CSS refs
-    content = re.sub(r'<link[^>]*href=\"[^\"]*plugins/woocommerce[^\"]*\"[^>]*>\n?', '', content)
-    content = re.sub(r'<link[^>]*href=\"[^\"]*plugins/contact-form-7[^\"]*\"[^>]*>\n?', '', content)
-    # Remove noscript blocks
-    content = re.sub(r'<noscript>.*?</noscript>\n?', '', content, flags=re.DOTALL)
-    if content != original:
-        with open(filepath, 'w') as f:
-            f.write(content)
-print('URL transformation complete')
-"
+# Run URL transformation (fail hard if transform.py errors)
+python3 scripts/transform.py
 
 # Fix index.html head section
 python3 -c "
 with open('index.html', 'r') as f:
     content = f.read()
 # Add clean importmap
-import_map = '<script id=\"wp-importmap\" type=\"importmap\">\n{\"imports\":{\"@wordpress/interactivity\":\"/wp-includes/js/dist/script-modules/interactivity/index.min.js?ver=efaa5193bbad9c60ffd1\"}}\n</script>\n'
+import_map = '<script id=\"wp-importmap\" type=\"importmap\">\n{\"imports\":{\"@wordpress/interactivity\":\"/wp-includes/js/dist/script-modules/interactivity/index.min132d.js?ver=efaa5193bbad9c60ffd1\"}}\n</script>\n'
 script_idx = content.find('<script')
 if script_idx >= 0 and 'wp-importmap' not in content:
     content = content[:script_idx] + import_map + content[script_idx:]

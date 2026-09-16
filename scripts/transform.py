@@ -18,12 +18,13 @@ for filepath in all_files:
     content = re.sub(r'https://bakery\.local', '/', content)
     content = re.sub(r'http%3A%2F%2Fbakery\.local%2F', '/', content)
     content = re.sub(r'http:\/\/bakery\.local\/', '/', content)
-    # JSON-escaped wpcf7.api block: replace broken "//wp-json//wp-json/"
-    # (from a previous botched run) AND the original escaped variant
+    # JSON-escaped wpcf7.api block: "http:\/\/bakery.local\/wp-json\/"
+    # must replace the entire escaped path in one pass to avoid partial matches
     content = re.sub(r'"root":\s*"http:\\/\\/bakery\.local\\\/wp-json\\\/"',
-                     '"root": "\\/wp-json\\/"', content)
+                     '"root": "\\\\/wp-json\\\\/"', content)
+    # Also fix any broken double-replacement from a previous run
     content = re.sub(r'"root":\s*"\\/\\/wp-json\\/\\/wp-json\\/"',
-                     '"root": "\\/wp-json\\/"', content)
+                     '"root": "\\\\/wp-json\\\\/"', content)
 
     # Fix protocol-relative URLs
     content = re.sub(r'//wp-admin', '/wp-admin', content)
