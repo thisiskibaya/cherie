@@ -1,1 +1,1 @@
-{ "name": "cherie", "version": "1.0.0", "description": "Static site for layout review" }
+{ "name": "cherie", "version": "1.0.0", "description": "Static site for layout review", "scripts": { "build": "true" } }

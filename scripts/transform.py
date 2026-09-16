@@ -13,18 +13,23 @@ for filepath in all_files:
         content = f.read()
     original = content
 
-    # Replace bakery.local URLs
-    content = re.sub(r'http://bakery\.local', '/', content)
-    content = re.sub(r'https://bakery\.local', '/', content)
-    content = re.sub(r'http%3A%2F%2Fbakery\.local%2F', '/', content)
-    content = re.sub(r'http:\/\/bakery\.local\/', '/', content)
+    # Replace bakery.local URLs (multiple encoding forms)
+    content = content.replace('http://bakery.local', '/')
+    content = content.replace('https://bakery.local', '/')
+    # URL-encoded (single): http%3A%2F%2Fbakery.local/...
+    content = content.replace('http%3A%2F%2Fbakery.local', '/')
+    # URL-encoded (double, e.g. wcSettings JSON.parse): http%3A%5C%2F%5C%2Fbakery.local/...
+    content = content.replace('http%3A%5C%2F%5C%2Fbakery.local', '/')
     # JSON-escaped wpcf7.api block: "http:\/\/bakery.local\/wp-json\/"
-    # must replace the entire escaped path in one pass to avoid partial matches
-    content = re.sub(r'"root":\s*"http:\\/\\/bakery\.local\\\/wp-json\\\/"',
-                     '"root": "\\\\/wp-json\\\\/"', content)
+    content = content.replace('"root": "http:\\/\\/bakery.local\\/wp-json\\/"', '"root": "\\/wp-json\\/"')
     # Also fix any broken double-replacement from a previous run
-    content = re.sub(r'"root":\s*"\\/\\/wp-json\\/\\/wp-json\\/"',
-                     '"root": "\\\\/wp-json\\\\/"', content)
+    content = content.replace('"root": "\\/\\/wp-json\\/\\/wp-json\\/"', '"root": "\\/wp-json\\/"')
+    # Raw-escaped: http:\/\/bakery.local/... (literal backslash-slash sequences)
+    content = content.replace('http:\\/\\/bakery.local', '/')
+    content = content.replace('https:\\/\\/bakery.local', '/')
+    # Fix theme hash mismatches (bake has old hashes, HTML references new ones)
+    content = content.replace('theme70b1.css', 'themeec63.css')
+    content = content.replace('interactions70b1.js', 'interactionsec63.js')
 
     # Fix protocol-relative URLs
     content = re.sub(r'//wp-admin', '/wp-admin', content)
