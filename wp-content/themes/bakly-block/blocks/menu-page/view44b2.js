@@ -26,6 +26,22 @@
 			root.querySelectorAll( '[data-marquee]' ).forEach( function ( marquee ) {
 				var track = marquee.querySelector( '.bakly-marquee-track' );
 				if ( ! track ) { return; }
+				var halves = track.children;
+				if ( halves.length > 1 ) {
+					var fill = function () {
+						var target = marquee.offsetWidth * 2;
+						var guard = 0;
+						while ( track.scrollWidth < target && guard < 8 ) {
+							halves[ 0 ].innerHTML += halves[ 0 ].innerHTML;
+							halves[ 1 ].innerHTML += halves[ 1 ].innerHTML;
+							guard++;
+						}
+					};
+					fill();
+					if ( window.ResizeObserver ) {
+						new window.ResizeObserver( fill ).observe( marquee );
+					}
+				}
 				gsap.to( track, {
 					xPercent: -25,
 					ease: 'none',
@@ -34,21 +50,6 @@
 						start: 'top bottom',
 						end: 'bottom top',
 						scrub: 1.5
-					}
-				} );
-			} );
-
-			root.querySelectorAll( '[data-parallax]' ).forEach( function ( layer ) {
-				var speed = parseFloat( layer.getAttribute( 'data-parallax' ) ) || 0;
-				if ( ! speed ) { return; }
-				gsap.to( layer, {
-					yPercent: speed,
-					ease: 'none',
-					scrollTrigger: {
-						trigger: layer.parentNode,
-						start: 'top bottom',
-						end: 'bottom top',
-						scrub: 1.2
 					}
 				} );
 			} );
@@ -84,16 +85,27 @@
 				} );
 			} );
 
-			links.forEach( function ( link, i ) {
+			sections.forEach( function ( section ) {
+				var sectionLinks = Array.prototype.filter.call( links, function ( link ) {
+					return ( link.getAttribute( 'href' ) || '' ) === '#' + section.id;
+				} );
+				if ( ! sectionLinks.length ) { return; }
 				ScrollTrigger.create( {
-					trigger: sections[ i ],
+					trigger: section,
 					start: 'top center',
 					end: 'bottom center',
 					onToggle: function ( self ) {
-						if ( self.isActive ) {
-							links.forEach( function ( l ) { l.classList.remove( 'is-active' ); } );
-							link.classList.add( 'is-active' );
-						}
+						if ( ! self.isActive ) { return; }
+						links.forEach( function ( l ) { l.classList.remove( 'is-active' ); } );
+						sectionLinks.forEach( function ( l ) { l.classList.add( 'is-active' ); } );
+						sectionLinks.forEach( function ( l ) {
+							var bar = l.closest( '.bakly-menu-page__pills' );
+							if ( ! bar ) { return; }
+							bar.scrollTo( {
+								left: l.offsetLeft - ( bar.clientWidth - l.offsetWidth ) / 2,
+								behavior: reduce.matches ? 'auto' : 'smooth'
+							} );
+						} );
 					}
 				} );
 			} );
@@ -110,6 +122,9 @@
 			}
 		}
 		links.forEach( function ( link ) {
+			link.addEventListener( 'click', go );
+		} );
+		root.querySelectorAll( '[data-menu-jump]' ).forEach( function ( link ) {
 			link.addEventListener( 'click', go );
 		} );
 

@@ -168,21 +168,34 @@ header.wp-block-template-part:has(:focus-within) { opacity:1; pointer-events:aut
 .bakly-header-cta .wp-block-button__link { padding:.85rem 1.6rem; }
 
 /* ============================================================
+   ABOVE-THE-FOLD BACKGROUND BAND (all pages, wp_body_open)
+   ============================================================ */
+.bakly-fold-bg {
+  position:absolute;
+  top:0; left:0; right:0;
+  height:clamp(28rem, 80svh, 48rem);
+  z-index:-1;
+  pointer-events:none;
+  overflow:hidden;
+  background:linear-gradient(150deg, rgba(250,218,250,.55), rgba(252,224,218,.4) 30%, rgba(104,50,146,.1) 55%, rgba(255,255,255,0) 72%);
+  -webkit-mask-image:linear-gradient(to bottom, #000 35%, rgba(0,0,0,0) 98%);
+  mask-image:linear-gradient(to bottom, #000 35%, rgba(0,0,0,0) 98%);
+}
+.bakly-fold-bg__icon { position:absolute; width:10rem; height:10rem; opacity:.32; }
+.bakly-fold-bg__icon--donut { top:3rem; left:2%; color:var(--bakly-pink); -webkit-mask-image:radial-gradient(130% 130% at 18% 18%, #000 28%, transparent 72%); mask-image:radial-gradient(130% 130% at 18% 18%, #000 28%, transparent 72%); }
+.bakly-fold-bg__icon--cupcake { top:4rem; right:3%; color:var(--bakly-purple); -webkit-mask-image:radial-gradient(130% 130% at 82% 18%, #000 28%, transparent 72%); mask-image:radial-gradient(130% 130% at 82% 18%, #000 28%, transparent 72%); }
+.bakly-fold-bg__icon--coffee { bottom:2rem; left:4%; color:var(--bakly-pink); -webkit-mask-image:radial-gradient(130% 130% at 20% 80%, #000 28%, transparent 72%); mask-image:radial-gradient(130% 130% at 20% 80%, #000 28%, transparent 72%); }
+@media (max-width:781px) {
+  .bakly-fold-bg__icon { width:6rem; height:6rem; }
+}
+
+/* ============================================================
    HERO
    ============================================================ */
 .bakly-hero {
   position:relative;
-  background:
-    radial-gradient(circle at 82% 22%, rgba(248,61,142,.14) 0 16px, transparent 17px),
-    linear-gradient(115deg, #fff 0%, var(--bakly-cream) 60%, var(--bakly-peach) 60%);
   padding-block:clamp(3rem,7vw,6rem);
 }
-.bakly-hero-bg { position:absolute; inset:0; pointer-events:none; margin:0; }
-.bakly-hero .bakly-shape { position:absolute; z-index:1; margin:0; }
-.bakly-hero .bakly-shape img { width:auto; max-width:none; }
-.bakly-hero .bakly-shape-one { top:18%; left:-3rem; width:7rem; animation:breath 5s ease-in-out infinite; }
-.bakly-hero .bakly-shape-two { width:4.5rem; right:6%; bottom:24%; animation:drift 7s ease-in-out infinite; }
-.bakly-hero .bakly-shape-three { width:8rem; right:38%; top:8%; animation:bob 6s ease-in-out infinite; }
 .bakly-hero-inner { position:relative; z-index:2; }
 /* Balance: center the deck inside its stretched column so both columns'
    visual mass sits mid-header */
@@ -286,10 +299,6 @@ header.wp-block-template-part:has(:focus-within) { opacity:1; pointer-events:aut
 .bakly-thumb { width:3.8rem; height:3.8rem; padding:0; background:none; cursor:pointer; border-radius:50%; overflow:hidden; border:2px solid transparent; transition:border-color .2s ease; }
 .bakly-thumb img { border-radius:50%; width:100%; height:100%; object-fit:cover; }
 .bakly-thumb.is-active { border-color:var(--bakly-pink); }
-
-@keyframes breath { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
-@keyframes drift { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-14px)} }
-@keyframes bob { 0%,100%{transform:rotate(0)} 50%{transform:rotate(8deg)} }
 
 /* ============================================================
    CATEGORIES
@@ -1055,7 +1064,6 @@ body.editor-styles-wrapper .bakly-testimonial-avatar-fallback { width:3rem; heig
 }
 
 @media (max-width: 781px) {
-  .bakly-hero { background:linear-gradient(160deg,#fff,var(--bakly-cream)); }
   .bakly-hero-content { padding-inline:0; }
   .bakly-hero-buttons { gap:.75rem; row-gap:.9rem; }
   .bakly-hero .is-style-bakly-pink .wp-block-button__link { padding:.75rem 1.35rem; }
@@ -1465,14 +1473,13 @@ html.lenis, html.lenis body { height:auto; }
 
 .bakly-menu-page {
   position:relative;
-  background:var(--bakly-cream);
+  background:transparent;
   overflow:clip;
 }
 
 /* --- hero --- */
 .bakly-menu-page__hero {
   position:relative;
-  min-height:56svh;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -1504,15 +1511,30 @@ html.lenis, html.lenis body { height:auto; }
   color:var(--bakly-muted);
   font-size:clamp(1rem,2vw,1.25rem);
 }
-.bakly-menu-page__scroll {
+.bakly-menu-page__scroll-cue {
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.6rem;
+  margin-top:1.5rem;
+  color:var(--bakly-muted);
+  text-decoration:none;
+}
+a.bakly-menu-page__scroll-cue:hover { color:var(--bakly-pink); }
+.bakly-menu-page__scroll-cue-label {
+  font-size:.7rem;
+  font-weight:600;
+  letter-spacing:.3em;
+  text-transform:uppercase;
+}
+.bakly-menu-page__scroll-line {
   position:relative;
   width:2px;
-  height:3.5rem;
-  margin-top:2.5rem;
+  height:2.75rem;
   overflow:hidden;
   background:rgba(18,19,27,.2);
 }
-.bakly-menu-page__scroll span {
+.bakly-menu-page__scroll-line span {
   position:absolute;
   left:0;
   top:0;
@@ -1521,18 +1543,22 @@ html.lenis, html.lenis body { height:auto; }
   background:var(--bakly-pink);
   animation:bakly-scroll-cue 1.8s ease-in-out infinite;
 }
+.bakly-menu-page__scroll-chevron {
+  width:.65rem;
+  height:.65rem;
+  border-right:2px solid currentColor;
+  border-bottom:2px solid currentColor;
+  transform:rotate(45deg);
+  animation:bakly-scroll-bob 1.8s ease-in-out infinite;
+}
 @keyframes bakly-scroll-cue {
   0% { transform:translateY(-100%); }
   60%, 100% { transform:translateY(100%); }
 }
-.bakly-menu-page__hero-svg {
-  position:absolute;
-  width:clamp(5rem,10vw,9rem);
-  opacity:.35;
-  pointer-events:none;
+@keyframes bakly-scroll-bob {
+  0%, 100% { transform:translateY(0) rotate(45deg); opacity:.5; }
+  50% { transform:translateY(3px) rotate(45deg); opacity:1; }
 }
-.bakly-menu-page__hero-svg { left:10%; top:22%; transform:rotate(-12deg); }
-.bakly-menu-page__hero-svg--two { right:10%; top:18%; transform:rotate(14deg); }
 
 /* --- sections --- */
 .bakly-menu-page__section {
@@ -1581,17 +1607,6 @@ html.lenis, html.lenis body { height:auto; }
   max-width:var(--wp--style--global--content-size,1280px);
   margin-inline:auto;
 }
-
-/* --- parallax layers --- */
-.bakly-menu-page__parallax {
-  position:absolute;
-  z-index:0;
-  width:clamp(6rem,12vw,11rem);
-  opacity:.45;
-  pointer-events:none;
-}
-.bakly-menu-page__parallax--right { top:2rem; right:2%; transform:rotate(12deg); }
-.bakly-menu-page__parallax--left { bottom:1rem; left:2%; transform:rotate(-14deg); }
 
 /* --- marquee separators --- */
 .bakly-marquee {
@@ -1683,26 +1698,44 @@ html.lenis, html.lenis body { height:auto; }
 .bakly-menu-page__rail a.is-active { color:var(--bakly-pink); }
 .bakly-menu-page__rail a.is-active::after { width:3.4rem; background:var(--bakly-pink); }
 
-/* --- pill bar (mobile) --- */
+/* condensed rail (laptops): numbers + tick line only — fits the ~80px gutter */
+@media (min-width:1440px) and (max-width:1759px) {
+  .bakly-menu-page__rail { right:.75rem; }
+  .bakly-menu-page__rail a { gap:.4rem; }
+  .bakly-menu-page__rail a span:not(.bakly-menu-page__rail-num) {
+    display:none;
+  }
+  .bakly-menu-page__rail-num { font-size:.7rem; }
+  .bakly-menu-page__rail a::after { width:1.5rem; }
+  .bakly-menu-page__rail a.is-active::after { width:2.2rem; }
+}
+
+/* --- pill bar (below 1440px) --- */
 .bakly-menu-page__pills {
   position:fixed;
   left:50%;
-  bottom:1rem;
+  bottom:calc(1rem + env(safe-area-inset-bottom, 0px));
   transform:translateX(-50%);
   z-index:50;
   display:none;
-  gap:.5rem;
+  gap:.35rem;
   max-width:94vw;
-  padding:.5rem;
+  padding:.4rem;
+  border:1px solid rgba(255,255,255,.08);
   border-radius:999px;
-  background:rgba(18,19,27,.92);
+  background:rgba(18,19,27,.78);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
   overflow-x:auto;
   scrollbar-width:none;
 }
 .bakly-menu-page__pills::-webkit-scrollbar { display:none; }
 .bakly-menu-page__pill {
   flex:0 0 auto;
-  padding:.5rem 1rem;
+  min-height:2.4rem;
+  display:inline-flex;
+  align-items:center;
+  padding:.45rem 1.05rem;
   border-radius:999px;
   color:rgba(255,255,255,.75);
   text-decoration:none;
@@ -1713,16 +1746,16 @@ html.lenis, html.lenis body { height:auto; }
 }
 .bakly-menu-page__pill.is-active { background:var(--bakly-pink); color:#fff; }
 
-@media (max-width:1023px) {
+@media (max-width:1439px) {
   .bakly-menu-page__rail { display:none; }
   .bakly-menu-page__pills { display:flex; }
 }
 @media (max-width:781px) {
   .bakly-marquee { padding:1rem 0; margin-block:2rem; }
-  .bakly-menu-page__hero-svg { width:4.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bakly-menu-page__scroll span { animation:none; }
+  .bakly-menu-page__scroll-line span,
+  .bakly-menu-page__scroll-chevron { animation:none; }
 }
 
 /* ==========================================================================
